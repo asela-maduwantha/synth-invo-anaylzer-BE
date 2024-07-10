@@ -20,7 +20,7 @@ load_dotenv()
 
 
 def generate_token(user, role, organization_id=None):
-    SECRET_KEY = os.getenv('SECRET_KEY')
+    SECRET_KEY = "synthInvoAnalyzer"
     expiry_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)  
     created_time = datetime.datetime.utcnow()
     random_value = random.randint(1, 1000000)  
