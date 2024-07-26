@@ -53,7 +53,7 @@ def create_subscription_model(request):
 
                 return Response("Success", status=201)
         except Exception as e:
-            print(e)
+  
             stripe.Product.modify(
                         product.id,
                         active=False  
@@ -63,12 +63,10 @@ def create_subscription_model(request):
 
     except stripe.error.StripeError as e:
         error_message = str(e)
-        print("Stripe Error:", error_message)
         return Response("Stripe Error: " + error_message, status=500)
 
     except Exception as e:
         error_message = "An error occurred while creating the subscription model."
-        print("Error:", error_message, e)
         return Response("Internal Server Error: " + error_message, status=500)
 
 
