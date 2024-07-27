@@ -98,35 +98,35 @@ def organization_products(request):
         return Response({"error": "organization_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-    
         search = Search(using=es, index="invoices")
         search = search.filter('term', recipient=organization_id)
-
         
         search_body = {
             "query": build_search_query(request.query_params).to_dict(),
-            "size": 1000  
+            "size": 1000
         }
-        # search.update_from_dict(search_body)
+        search.update_from_dict(search_body)
 
-   
         response = search.execute()
         products = {}
+        
         for hit in response.hits:
-            invoice_year = datetime.strptime(hit.invoice_date, "%Y-%m-%dT%H:%M:%S").year
-            for item in hit.items:
-                description = item['description']
-                currency = hit.currency if hasattr(hit, 'currency') else None
-                if description not in products:
-                    products[description] = {"currency": currency, "years": set()}
-                products[description]["years"].add(invoice_year)
+            try:
+                invoice_year = datetime.strptime(hit.invoice_date, "%Y-%m-%dT%H:%M:%S").year
+                for item in hit.items:
+                    description = item['description']
+                    currency = getattr(hit, 'currency', None)
+                    if description not in products:
+                        products[description] = {"currency": currency, "years": set()}
+                    products[description]["years"].add(invoice_year)
+            except AttributeError as e:
+                return Response({"error": f"Missing attribute in hit: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-       
         product_list = [
             {"description": desc, "currency": details["currency"], "years": sorted(details["years"])}
             for desc, details in products.items()
         ]
-       
+        
         return Response(product_list, status=status.HTTP_200_OK)
 
     except Exception as e:
