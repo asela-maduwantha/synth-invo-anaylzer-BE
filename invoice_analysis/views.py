@@ -94,42 +94,44 @@ def monthly_expenditures(request):
 
 
 
-
 @api_view(['GET'])
 def suppliers_price_by_month(request):
     year = request.query_params.get('year')
     product_name = request.query_params.get('product_name')
     organization_id = request.query_params.get('organization_id')
-    suppliers = request.query_params.getlist('suppliers')
 
     if not year or not product_name or not organization_id:
         return Response({"error": "Both 'year', 'product_name', and 'organization_id' parameters are required"},
                         status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        # Fetch invoice data
         data = get_invoice_data(year, product_name, organization_id, es)
 
         if not data:
             return Response({"error": "No data found for the given product, year, and organization"},
                             status=status.HTTP_404_NOT_FOUND)
 
+        # Convert data to DataFrame
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df['date'])
         df['month'] = df['date'].dt.month
 
+        # Group by supplier and month, then calculate average price
         monthly_avg = df.groupby(['supplier', 'month'])['price'].mean().reset_index()
+ 
 
-        if suppliers:
-            monthly_avg = monthly_avg[monthly_avg['supplier'].isin(suppliers)]
-
+        # Reshape data for each supplier with monthly prices
         result = []
-        for index, row in monthly_avg.iterrows():
+        for supplier in monthly_avg['supplier'].unique():
+            supplier_data = monthly_avg[monthly_avg['supplier'] == supplier]
+            # Convert to dictionary with months as keys and average prices as values
+            monthly_prices = supplier_data.set_index('month')['price'].to_dict()
             result.append({
-                'supplier': row['supplier'],
-                'avg_price': row['price'],  # Assuming 'price' is the column name for average price
-                'product_name': product_name  # Add product_name to the response
+                'supplier': supplier,
+                'monthly_prices': {month: monthly_prices.get(month, 0) for month in range(1, 13)}  # Ensure all months are represented
             })
-
+ 
         return Response(result, status=status.HTTP_200_OK)
 
     except ValueError as e:
@@ -137,4 +139,3 @@ def suppliers_price_by_month(request):
     except Exception as e:
         print(e)
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
