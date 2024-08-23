@@ -104,7 +104,7 @@ DATABASES = {
          'ENGINE': 'django_cassandra_engine',
          'NAME': 'synth_invo_analyzer',
          'TEST_NAME': '',
-         'HOST': '13.127.0.98',
+         'HOST': '3.109.239.176',
          'OPTIONS': {
              'replication': {
                  'strategy_class': 'SimpleStrategy',
